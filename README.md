@@ -1,2 +1,2 @@
 # luapb
- a protobuffer  plugin  for lua  
+luapb is a google protocol buffers library for C without code generation.
