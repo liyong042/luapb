@@ -5,9 +5,9 @@ and lua-pbc is a very good library for lua, address: https://github.com/cloudwu/
 
 
 #Message API 
-	pb.import()
-	pb.encode()
-	pb.decode()
-	pb.register_path() 
+	pb.import( );    
+	pb.encode( );
+	pb.decode( );
+	pb.register_path( ) ;
   
   
