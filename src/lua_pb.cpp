@@ -68,7 +68,7 @@ static int st_pb_to_array(const Message &message, const FieldDescriptor* field, 
 {
 	lua_newtable(L);
 	const Reflection* reflection = message.GetReflection();
-	const int		  size		 = reflection->FieldSize( message, field );
+	const int		 size= reflection->FieldSize( message, field );
 	for ( int i = 0; i < size; i++ ){
 		lua_pushnumber(L, i+1); 
 		switch (field->cpp_type()) {
@@ -110,7 +110,7 @@ static int st_pb_to_table(const Message &message, lua_State *L)
 	}
 	for (unsigned i = 0; i < field_list.size(); ++i) {
 		const FieldDescriptor* pfield = field_list[i];
-		if (pfield->is_repeated()){
+		if ( pfield->is_repeated() ){
 			st_pb_to_array(message, pfield, L);
 		}
 		else{
@@ -123,8 +123,7 @@ static int st_pb_to_table(const Message &message, lua_State *L)
 //=================lua table to protobuf ==============================================
 static  void st_value_to_pb(const Reflection* reflection, const FieldDescriptor* pField, Message *message, lua_State* L)
 {
-	switch (pField->cpp_type())
-	{
+	switch ( pField->cpp_type()  ){
 	case FieldDescriptor::CPPTYPE_STRING:{
 		if (lua_type(L, -1) == LUA_TSTRING || lua_type(L, -1) == LUA_TNUMBER){
 			size_t len = 0;
@@ -143,22 +142,19 @@ static  void st_value_to_pb(const Reflection* reflection, const FieldDescriptor*
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_UINT32:
-	{
+	case FieldDescriptor::CPPTYPE_UINT32:{
 		if (lua_type(L, -1) == LUA_TNUMBER || lua_type(L, -1) == LUA_TSTRING){
 			reflection->SetUInt32(message, pField, luaL_checkinteger(L, -1));
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_BOOL:
-	{
+	case FieldDescriptor::CPPTYPE_BOOL:{
 		if (lua_type(L, -1) == LUA_TBOOLEAN){
 			reflection->SetBool(message, pField, luaL_checkinteger(L, -1));
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_INT64:
-	{
+	case FieldDescriptor::CPPTYPE_INT64:{
 		if (lua_type(L, -1) == LUA_TNUMBER){
 			reflection->SetInt64(message, pField, luaL_checkinteger(L, -1));
 		}
@@ -171,8 +167,7 @@ static  void st_value_to_pb(const Reflection* reflection, const FieldDescriptor*
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_ENUM:
-	{
+	case FieldDescriptor::CPPTYPE_ENUM:{
 		const EnumValueDescriptor* type = pField->enum_type()->FindValueByNumber( luaL_checkinteger(L, -1) );
 		if (NULL == type) {
 			DF_LOG(LOG_ERROR, "Fail to find enum descriptor name:" << luaL_checkstring(L, -1) );
@@ -182,30 +177,26 @@ static  void st_value_to_pb(const Reflection* reflection, const FieldDescriptor*
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_DOUBLE:
-	{
+	case FieldDescriptor::CPPTYPE_DOUBLE:{
 		if ( lua_type(L, -1) == LUA_TNUMBER ){
 			reflection->SetDouble(message, pField, luaL_checknumber(L, -1));
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_FLOAT:
-	{
+	case FieldDescriptor::CPPTYPE_FLOAT:{
 		if (lua_type(L, -1) == LUA_TNUMBER){
 			reflection->SetFloat(message, pField, luaL_checknumber(L, -1));
 		}
 		break;
 	}
-	case FieldDescriptor::CPPTYPE_MESSAGE:
-	{
+	case FieldDescriptor::CPPTYPE_MESSAGE:{
 		if (lua_type(L, -1) == LUA_TTABLE){
 			Message* subMessage = reflection->MutableMessage(message, pField);
 			st_table_to_pb(subMessage, NULL, L);
 		}
 		break;
 	}
-	default:
-	{
+	default:{
 		DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name() ) ; 
 		break;
 	}
@@ -213,13 +204,12 @@ static  void st_value_to_pb(const Reflection* reflection, const FieldDescriptor*
 }
 static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua_State* L)
 {
-	if (NULL == message)
-	{
+	if (NULL == message){
 		//lua_pop(L, 1);
 		DF_LOG(LOG_ERROR, " no message " );
 		return ;
 	}
-	const int it = lua_gettop(L);
+	const int it = lua_gettop (L );
 	if ( 1 == lua_isnil(L, it) ){
 		DF_LOG(LOG_ERROR, " not table top " << it );
 		lua_pop(L, 1);
@@ -233,7 +223,7 @@ static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua
 		if ( LUA_TNUMBER == lua_type(L, -2)){
 			if ( NULL != pField && pField->is_repeated() ){
 				if ( lua_type(L, -1) == LUA_TTABLE ){
-					Message* subMessage = reflection->AddMessage(message, pField);
+					Message* subMessage = reflection->AddMessage( message, pField );
 					st_table_to_pb(subMessage, NULL, L);
 				}
 				else if ( lua_type(L, -1) == LUA_TSTRING ){
@@ -280,8 +270,8 @@ static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua
 		}
 		else{
 			const std::string      fieldName = luaL_checkstring(L, -2);
-			const FieldDescriptor* k_pfield  = descriptor->FindFieldByName(fieldName);
-			if (k_pfield){
+			const FieldDescriptor* k_pfield  = descriptor->FindFieldByName( fieldName );
+			if ( k_pfield ){
 				if (k_pfield->is_repeated()){
 					st_table_to_pb(message, k_pfield, L);
 				}
@@ -313,23 +303,23 @@ static int st_luapb_reg_file(lua_State *L)
 	}
 	return 1;
 }
-//±‡¬Î∞¸ 
+//ÁºñÁ†ÅÂåÖ 
 static int st_luapb_encode(lua_State *L)
 {
 	const char       *name       = luaL_checkstring(L, 1);
 	const Descriptor *descriptor = g_importer.pool()->FindMessageTypeByName( name );
-	if (NULL == descriptor){
-		lua_pushnil(L);
+	if ( NULL == descriptor ){
+		lua_pushnil( L );
 		DF_LOG(LOG_ERROR, "get descriptor fail :" << name );
 		return 1;
 	}
-	const Message *message = g_factory.GetPrototype(descriptor);
-	if (NULL == message){
+	const Message *message = g_factory.GetPrototype( descriptor );
+	if ( NULL == message ){
 		lua_pushnil(L);
 		DF_LOG(LOG_ERROR, "get GetPrototype fail :" << name );
 		return 1;
 	}
-	internal::scoped_ptr<Message> k_pMsg(message->New());
+	internal::scoped_ptr<Message> k_pMsg( message->New() );
 	st_table_to_pb( k_pMsg.get(), NULL, L );
 	const std::string val = k_pMsg->SerializeAsString();
 	lua_pushlstring(L, val.data(), val.size() );
@@ -338,7 +328,7 @@ static int st_luapb_encode(lua_State *L)
 	return  1; 
 }
 
-//Ω‚¬Î msg_name, buf 
+//Ëß£Á†Å msg_name, buf 
 static int st_luapb_decode( lua_State *L )
 {
 	size_t len(0);
@@ -368,7 +358,7 @@ static int st_luapb_decode( lua_State *L )
 }
 
 ////////////////////////////////////////////////////////////
-//…Ë÷√»’÷æº∂± 
+//ËÆæÁΩÆÊó•ÂøóÁ∫ßÂà´ 
 static int st_set_log(lua_State *L)
 {
 	LogFile::instance().m_log_level = luaL_checknumber(L, 1);
@@ -378,12 +368,12 @@ static int st_set_log(lua_State *L)
 //luapb 
 static const luaL_Reg  luapb_module[] =
 {
-	{ "set_log",		st_set_log		  },
-	{ "import",			st_luapb_reg_file },
-	{ "encode",			st_luapb_encode   },
-	{ "decode",			st_luapb_decode   },
-	{ "register_file",  st_luapb_reg_file },
-	{ "register_path",  st_luapb_reg_path },
+	{ "set_log",		st_set_log        },
+	{ "import",		st_luapb_reg_file },
+	{ "encode",		st_luapb_encode   },
+	{ "decode",		st_luapb_decode   },
+	{ "register_file",      st_luapb_reg_file },
+	{ "register_path",      st_luapb_reg_path },
 	{ NULL, NULL }
 };
 
