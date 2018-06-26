@@ -24,7 +24,7 @@ luapb  参考 cjson 的接口设计， 简单容易上手。
   
         enum LogLevel {
 		LOGL_INFO  =0,    // Informational.  This is never actually used by libprotobuf.
-		LOG_WARNING=1,    // Warns about issues that, although not technically a problem now, could cause problems in the future.
+		LOG_WARNING=1,    // Warns about issues that, although not technically a problem now.
 		LOG_ERROR  =2,    // An error occurred which should never happen during normal use.
 		LOG_FATAL  =3     // An error occurred from which the library cannot recover.  
 	}
