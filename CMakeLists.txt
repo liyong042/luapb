@@ -11,7 +11,7 @@ include_directories(/usr/local/include)     #PROTOBUF_INC_DIR
 #获取目录下的c/cpp文件合集
 aux_source_directory(${CMAKE_SOURCE_DIR}/src DIR_SRCS)
 
-link_directories(/usr/local/lib)			  #liblua-5.1.so
+link_directories(/usr/local/lib)			  #liblua-5.1.so  libprotobuf.so  
 
 #编译成动态库
 add_library(luapb SHARED ${DIR_SRCS} ) 
