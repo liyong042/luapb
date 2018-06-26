@@ -17,7 +17,7 @@ luapb  参考 cjson 的接口设计， 简单容易上手。
   
 # Debug Log 调试日志输出 
   经常会遇到 protobuf 异常和解析失败的问题，需要打印错误日志。这里体统一个简单日志等级接口，方便查看错误。 
-  	pb.set_log（ 3 ）
+	pb.set_log（ 3 ）
   
   日志等级设计
         enum LogLevel {
