@@ -31,7 +31,7 @@ luapb  参考 cjson 的接口设计， 简单容易上手。
 	}
 	
 # 编译 
-  linux 编译 
+  ## linux 编译 
   
    Makefile 编译， 注意设置好 LUA_INC_DIR ， PROTOBUF_INC_DIR 库路径 ,  直接 make 就可以 ，
 	如果提示找不到库， 可以更改 -L/usr/local/lib 来查找库路径 
