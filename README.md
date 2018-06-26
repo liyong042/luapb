@@ -38,6 +38,6 @@ luapb  参考 cjson 的接口设计， 简单容易上手。
   
    Cmake的编译很简单， 直接 cmake , make ,  如果提示库找不到，请注意设置好 lua ,protobuf的库路径。 
   ##  windows 编译  
-  
+    windows的编译很简单, 直接使用 visual studio 将代码加入编译成库就好 。  
   
   
