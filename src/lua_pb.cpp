@@ -29,9 +29,9 @@ static int  st_pb_to_array(const Message &message, const FieldDescriptor* field,
 static int  st_pb_to_table(const Message &message, lua_State *L);
 static void st_table_to_pb(Message* message, const FieldDescriptor* pFieldDescriptor, lua_State* L);
 //------------------------------------------------------------
-static MyFileErrorCollector		g_errorCollector;
-static DiskSourceTree			g_sourceTree;
-static Importer					g_importer(&g_sourceTree, &g_errorCollector);
+static MyFileErrorCollector	g_errorCollector;
+static DiskSourceTree		g_sourceTree;
+static Importer			g_importer(&g_sourceTree, &g_errorCollector);
 static DynamicMessageFactory	g_factory; 
 //===================protobuf to lua table ========================================
 static int st_pb_to_value(const Message &message, const FieldDescriptor* field, lua_State *L)
