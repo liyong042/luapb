@@ -121,87 +121,94 @@ static int st_pb_to_table(const Message &message, lua_State *L)
 	return 1; 
 }
 //=================lua table to protobuf ==============================================
-static  void st_value_to_pb(const Reflection* reflection, const FieldDescriptor* pField, Message *message, lua_State* L)
+//set pb value 
+static  void st_value_to_pb(const Reflection* pRef, const FieldDescriptor* pField, Message *msg, lua_State* L)
 {
-	switch ( pField->cpp_type()  ){
-	case FieldDescriptor::CPPTYPE_STRING:{
-		if (lua_type(L, -1) == LUA_TSTRING || lua_type(L, -1) == LUA_TNUMBER){
-			size_t len = 0;
-			const char* c = luaL_checklstring(L, -1, &len);
-			std::string str(c, len);
-			reflection->SetString(message, pField, str);
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_INT32:{
-		if (lua_type(L, -1) == LUA_TNUMBER){
-			reflection->SetInt32(message, pField, luaL_checkinteger(L, -1));
-		}
-		else if (lua_type(L, -1) == LUA_TSTRING){
-			reflection->SetInt32(message, pField, atoi(luaL_checkstring(L, -1)));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_UINT32:{
-		if (lua_type(L, -1) == LUA_TNUMBER || lua_type(L, -1) == LUA_TSTRING){
-			reflection->SetUInt32(message, pField, luaL_checkinteger(L, -1));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_BOOL:{
-		if (lua_type(L, -1) == LUA_TBOOLEAN){
-			reflection->SetBool(message, pField, luaL_checkinteger(L, -1));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_INT64:{
-		if (lua_type(L, -1) == LUA_TNUMBER){
-			reflection->SetInt64(message, pField, luaL_checkinteger(L, -1));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_UINT64:
-	{
-		if (lua_type(L, -1) == LUA_TNUMBER){
-			reflection->SetUInt64(message, pField, luaL_checkinteger(L, -1));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_ENUM:{
-		const EnumValueDescriptor* type = pField->enum_type()->FindValueByNumber( luaL_checkinteger(L, -1) );
-		if (NULL == type) {
-			DF_LOG(LOG_ERROR, "Fail to find enum descriptor name:" << luaL_checkstring(L, -1) );
-		}
-		else {
-			reflection->SetEnum(message, pField, type );
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_DOUBLE:{
-		if ( lua_type(L, -1) == LUA_TNUMBER ){
-			reflection->SetDouble(message, pField, luaL_checknumber(L, -1));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_FLOAT:{
-		if (lua_type(L, -1) == LUA_TNUMBER){
-			reflection->SetFloat(message, pField, luaL_checknumber(L, -1));
-		}
-		break;
-	}
-	case FieldDescriptor::CPPTYPE_MESSAGE:{
+	if( pField->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE ){
 		if (lua_type(L, -1) == LUA_TTABLE){
-			Message* subMessage = reflection->MutableMessage(message, pField);
+			Message* subMessage = pRef->MutableMessage(msg, pField );
 			st_table_to_pb(subMessage, NULL, L);
 		}
+		return;
+	}
+	if ( lua_type(L, -1) != LUA_TSTRING && lua_type(L, -1) != LUA_TNUMBER ){
+		return;
+	}
+	switch (pField->cpp_type())
+	{
+		case FieldDescriptor::CPPTYPE_INT32: { pRef->SetInt32  (msg, pField, lua_tointeger(L, -1)); break;}
+		case FieldDescriptor::CPPTYPE_UINT32:{ pRef->SetUInt32 (msg, pField, lua_tointeger(L, -1)); break;}
+		case FieldDescriptor::CPPTYPE_BOOL:  { pRef->SetBool   (msg, pField, lua_toboolean(L, -1)); break;}
+		case FieldDescriptor::CPPTYPE_INT64: { pRef->SetInt64  (msg, pField, lua_tonumber(L, -1) ); break;}
+		case FieldDescriptor::CPPTYPE_UINT64:{ pRef->SetUInt64 (msg, pField, lua_tonumber(L, -1) ); break;}
+		case FieldDescriptor::CPPTYPE_DOUBLE:{ pRef->SetDouble (msg, pField, lua_tonumber(L, -1) ); break;}
+		case FieldDescriptor::CPPTYPE_FLOAT: { pRef->SetFloat  (msg, pField, lua_tonumber(L, -1) ); break;}
+		case FieldDescriptor::CPPTYPE_ENUM:  { 
+			const EnumValueDescriptor* pType = pField->enum_type()->FindValueByNumber( lua_tonumber(L, -1) );
+			if (NULL == pType ) {
+				DF_LOG(LOG_ERROR, "Fail to find enum descriptor name:" << lua_tostring(L, -1));
+			}
+			else {
+				pRef->SetEnum(msg, pField, pType );
+			}
+			break;
+		}
+		case FieldDescriptor::CPPTYPE_STRING:{
+			size_t len = 0;
+			const char* c = lua_tolstring(L, -1, &len);
+			pRef->SetString(msg, pField, std::string(c, len));
+			break;
+		}
+		default:{
+			DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name() ) ; 
+			break;
+		}
+	}
+}
+//add pb repaete value 
+static  void st_value_to_pb_repeated(const Reflection* pRef, const FieldDescriptor* pField, Message *msg, lua_State* L)
+{
+	const int type = lua_type(L, -1);
+	if ( type == LUA_TTABLE ){
+		Message* subMessage = pRef->AddMessage(msg, pField);
+		st_table_to_pb(subMessage, NULL, L);
+	}
+	if (type != LUA_TSTRING && type != LUA_TNUMBER){
+		return;
+	}
+	switch (pField->cpp_type())
+	{
+	case FieldDescriptor::CPPTYPE_INT32: { pRef->AddInt32 (msg, pField, lua_tointeger(L, -1)); break; }
+	case FieldDescriptor::CPPTYPE_INT64: { pRef->AddInt64 (msg, pField, lua_tointeger(L, -1)); break; }
+	case FieldDescriptor::CPPTYPE_UINT32:{ pRef->AddUInt32(msg, pField, lua_tointeger(L, -1)); break; }
+	case FieldDescriptor::CPPTYPE_UINT64:{ pRef->AddUInt64(msg, pField, lua_tointeger(L, -1)); break; }
+	case FieldDescriptor::CPPTYPE_BOOL:  { pRef->AddBool  (msg, pField, lua_tointeger(L, -1)); break; }
+	case FieldDescriptor::CPPTYPE_FLOAT: { pRef->AddFloat (msg, pField, lua_tonumber(L, -1));  break; }
+	case FieldDescriptor::CPPTYPE_DOUBLE:{ pRef->AddDouble(msg, pField, lua_tonumber(L, -1));  break; }
+	case FieldDescriptor::CPPTYPE_ENUM:  {
+			const EnumValueDescriptor* pType = pField->enum_type()->FindValueByNumber(lua_tonumber(L, -1));
+			if (NULL == pType) {
+				DF_LOG(LOG_ERROR, "Fail to find enum descriptor name:" << lua_tostring(L, -1));
+			}
+			else {
+				pRef->AddEnum(msg, pField, pType);
+			}
+	}
+	case FieldDescriptor::CPPTYPE_STRING:{
+		size_t len = 0;
+		const char* c = lua_tolstring(L, -1, &len);
+		pRef->AddString(msg, pField, std::string(c, len));
 		break;
 	}
 	default:{
-		DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name() ) ; 
-		break;
-	}
+			luaL_argerror(L, (2), " set not support type");
+			DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name());
+			break;
+		}
 	}
 }
+
+//lua table to pb 
 static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua_State* L)
 {
 	if (NULL == message){
@@ -209,7 +216,7 @@ static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua
 		DF_LOG(LOG_ERROR, " no message " );
 		return ;
 	}
-	const int it = lua_gettop (L );
+	const int it = lua_gettop(L);
 	if ( 1 == lua_isnil(L, it) ){
 		DF_LOG(LOG_ERROR, " not table top " << it );
 		lua_pop(L, 1);
@@ -222,55 +229,12 @@ static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua
 	while ( 0 != lua_next(L, it) ){
 		if ( LUA_TNUMBER == lua_type(L, -2)){
 			if ( NULL != pField && pField->is_repeated() ){
-				if ( lua_type(L, -1) == LUA_TTABLE ){
-					Message* subMessage = reflection->AddMessage( message, pField );
-					st_table_to_pb(subMessage, NULL, L);
-				}
-				else if ( lua_type(L, -1) == LUA_TSTRING ){
-					size_t len = 0;
-					const char* c = luaL_checklstring(L, -1, &len);
-					std::string str(c, len);
-					reflection->AddString(message, pField, str);
-				}
-				else if ( lua_type(L, -1) == LUA_TNUMBER ){
-					if (pField->cpp_type() == FieldDescriptor::CPPTYPE_INT32){
-						int value = luaL_checkinteger(L, -1);
-						reflection->AddInt32(message, pField, value);
-					}
-					else if (pField->cpp_type() == FieldDescriptor::CPPTYPE_INT64){
-						int64 value = luaL_checkinteger(L, -1);
-						reflection->AddInt64(message, pField, value);
-					}
-					else if (pField->cpp_type() == FieldDescriptor::CPPTYPE_UINT32){
-						uint32 value = luaL_checkinteger(L, -1);
-						reflection->AddUInt32(message, pField, value);
-					}
-					else if (pField->cpp_type() == FieldDescriptor::CPPTYPE_UINT64){
-						uint64 value = luaL_checkinteger(L, -1);
-						reflection->AddUInt64(message, pField, value);
-					}
-					else if (pField->cpp_type() == FieldDescriptor::CPPTYPE_BOOL){
-						bool value = luaL_checkinteger(L, -1);
-						reflection->AddBool(message, pField, value);
-					}
-					else if (pField->cpp_type() == FieldDescriptor::CPPTYPE_FLOAT){
-						float value = luaL_checknumber(L, -1);
-						reflection->AddFloat(message, pField, value);
-					}
-					else if (pField->cpp_type() == FieldDescriptor::CPPTYPE_DOUBLE){
-						double value = luaL_checknumber(L, -1);
-						reflection->AddDouble(message, pField, value);
-					}
-					else{
-						luaL_argerror(L, (2), " set not support type");
-						DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name());
-					}
-				}
+				st_value_to_pb_repeated( reflection, pField, message, L );
 			}
 		}
 		else{
 			const std::string      fieldName = luaL_checkstring(L, -2);
-			const FieldDescriptor* k_pfield  = descriptor->FindFieldByName( fieldName );
+			const FieldDescriptor* k_pfield  = descriptor->FindFieldByName(fieldName);
 			if ( k_pfield ){
 				if (k_pfield->is_repeated()){
 					st_table_to_pb(message, k_pfield, L);
