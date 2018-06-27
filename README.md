@@ -9,6 +9,9 @@ luapb  参考 cjson 的接口设计， 简单容易上手。
 	
 云风大神 写了一个luapbc不错，可惜不更新了，大家可以参考一下( https://github.com/cloudwu/pbc )
 
+开源的LuaPb 有很多，可实际好用的没几个， 这里主要针对环境是 OpenResty( ngnix+lua ). 设计目的就是为了简单易用。 
+
+
 # Message API 简单Api 
 	 
 	pb.encode( "Person", lua_table )         
