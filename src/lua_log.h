@@ -16,7 +16,7 @@ class  LogFile
 {
 public:
 	int m_log_level;
-	LogFile() :m_log_level(LOG_NORMAL){}
+	LogFile() :m_log_level(LOG_ERROR){}
 public:
 	static LogFile& instance(){ static LogFile g_log; return g_log; }
 };
