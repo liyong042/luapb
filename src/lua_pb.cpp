@@ -31,65 +31,65 @@ static DiskSourceTree		g_sourceTree;
 static Importer			g_importer(&g_sourceTree, &g_errorCollector);
 static DynamicMessageFactory	g_factory; 
 //===================protobuf to lua table ========================================
-static int st_pb_to_value(const Message &message, const FieldDescriptor* field, lua_State *L)
+static int st_pb_to_value(const Message &msg, const FieldDescriptor* pField, lua_State *L)
 {
-	const Reflection* reflection = message.GetReflection();
-	switch (field->cpp_type()) {
-	case FieldDescriptor::CPPTYPE_BOOL:   { lua_pushboolean(L, reflection->GetBool(message, field));   break; }
-	case FieldDescriptor::CPPTYPE_UINT32: { lua_pushinteger(L, reflection->GetUInt32(message, field)); break; }
-	case FieldDescriptor::CPPTYPE_UINT64: { lua_pushinteger(L, reflection->GetUInt64(message, field)); break; }
-	case FieldDescriptor::CPPTYPE_INT32:  { lua_pushinteger(L, reflection->GetInt32(message, field));  break; }
-	case FieldDescriptor::CPPTYPE_INT64:  { lua_pushinteger(L, reflection->GetInt64(message, field));  break; }
-	case FieldDescriptor::CPPTYPE_FLOAT:  { lua_pushnumber(L, static_cast<double>(reflection->GetFloat(message, field))); break; }
-	case FieldDescriptor::CPPTYPE_DOUBLE: { lua_pushnumber(L, reflection->GetDouble(message, field));  break; }
-	case FieldDescriptor::CPPTYPE_ENUM:   { lua_pushnumber(L, reflection->GetEnum(message, field)->number()); break; }
+	const Reflection* pRef = msg.GetReflection();
+	switch (pField->cpp_type()) {
+	case FieldDescriptor::CPPTYPE_BOOL:   { lua_pushboolean(L, pRef->GetBool(msg, pField));   break; }
+	case FieldDescriptor::CPPTYPE_UINT32: { lua_pushinteger(L, pRef->GetUInt32(msg, pField)); break; }
+	case FieldDescriptor::CPPTYPE_UINT64: { lua_pushinteger(L, pRef->GetUInt64(msg, pField)); break; }
+	case FieldDescriptor::CPPTYPE_INT32:  { lua_pushinteger(L, pRef->GetInt32(msg, pField));  break; }
+	case FieldDescriptor::CPPTYPE_INT64:  { lua_pushinteger(L, pRef->GetInt64(msg, pField));  break; }
+	case FieldDescriptor::CPPTYPE_FLOAT:  { lua_pushnumber(L, static_cast<double>(pRef->GetFloat(msg, pField))); break; }
+	case FieldDescriptor::CPPTYPE_DOUBLE: { lua_pushnumber(L, pRef->GetDouble(msg, pField));  break; }
+	case FieldDescriptor::CPPTYPE_ENUM:   { lua_pushnumber(L, pRef->GetEnum(msg, pField)->number()); break; }
 	case FieldDescriptor::CPPTYPE_STRING: {
-		std::string val = reflection->GetString(message, field); 
+		std::string val = pRef->GetString(msg, pField); 
 		lua_pushlstring(L, val.data(), val.size());
 		break;
 	}
 	case FieldDescriptor::CPPTYPE_MESSAGE:{
-		const Message& tmp = reflection->GetMessage(message, field);
+		const Message& tmp = pRef->GetMessage(msg, pField);
 		st_pb_to_table( tmp, L );
 		break;
 	}
 	default:{ 
 		lua_pushnil(L);
-		DF_LOG(LOG_ERROR, " not support name:" << field->name() << " type:" << field->type_name());
+		DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name());
 		break;
 	}
 	}
 	return 1;
 }
-static int st_pb_to_array(const Message &message, const FieldDescriptor* field, lua_State *L)
+static int st_pb_to_array(const Message &msg, const FieldDescriptor* pField, lua_State *L)
 {
 	lua_newtable(L);
-	const Reflection* reflection = message.GetReflection();
-	const int		 size= reflection->FieldSize( message, field );
+	const Reflection* pRef = msg.GetReflection();
+	const int		 size = pRef->FieldSize(msg, pField);
 	for ( int i = 0; i < size; i++ ){
 		lua_pushnumber(L, i+1); 
-		switch (field->cpp_type()) {
-		case FieldDescriptor::CPPTYPE_BOOL:   { lua_pushboolean(L, reflection->GetRepeatedBool  (message, field, i)); break; }
-		case FieldDescriptor::CPPTYPE_UINT32: { lua_pushinteger(L, reflection->GetRepeatedUInt32(message, field, i)); break; }
-		case FieldDescriptor::CPPTYPE_UINT64: { lua_pushinteger(L, reflection->GetRepeatedUInt64(message, field, i)); break; }
-		case FieldDescriptor::CPPTYPE_INT32:  { lua_pushinteger(L, reflection->GetRepeatedInt32 (message, field, i)); break; }
-		case FieldDescriptor::CPPTYPE_INT64:  { lua_pushinteger(L, reflection->GetRepeatedInt64 (message, field, i)); break; }
-		case FieldDescriptor::CPPTYPE_FLOAT:  { lua_pushnumber(L, static_cast<double>(reflection->GetRepeatedFloat(message, field, i))); break; }
-		case FieldDescriptor::CPPTYPE_DOUBLE: { lua_pushnumber(L, reflection->GetRepeatedDouble (message, field, i)); break; }
+		switch (pField->cpp_type()) {
+		case FieldDescriptor::CPPTYPE_BOOL:   { lua_pushboolean(L, pRef->GetRepeatedBool(msg, pField, i));   break; }
+		case FieldDescriptor::CPPTYPE_UINT32: { lua_pushinteger(L, pRef->GetRepeatedUInt32(msg, pField, i)); break; }
+		case FieldDescriptor::CPPTYPE_UINT64: { lua_pushinteger(L, pRef->GetRepeatedUInt64(msg, pField, i)); break; }
+		case FieldDescriptor::CPPTYPE_INT32:  { lua_pushinteger(L, pRef->GetRepeatedInt32(msg, pField, i));  break; }
+		case FieldDescriptor::CPPTYPE_INT64:  { lua_pushinteger(L, pRef->GetRepeatedInt64(msg, pField, i));  break; }
+		case FieldDescriptor::CPPTYPE_FLOAT:  { lua_pushnumber(L, static_cast<double>(pRef->GetRepeatedFloat(msg, pField, i))); break; }
+		case FieldDescriptor::CPPTYPE_DOUBLE: { lua_pushnumber(L, pRef->GetRepeatedDouble(msg, pField, i)); break; }
 		case FieldDescriptor::CPPTYPE_STRING: {
-			std::string val = reflection->GetRepeatedString(message, field, i); 
+			std::string val = pRef->GetRepeatedString(msg, pField, i); 
 			lua_pushlstring(L, val.data(), val.size());
 			break;
 		}
 		case FieldDescriptor::CPPTYPE_MESSAGE:{
-			const Message& tmp = reflection->GetRepeatedMessage(message, field, i);
+			const Message& tmp = pRef->GetRepeatedMessage(msg, pField, i);
 			st_pb_to_table(tmp, L);
 			break;
 		}
-		case FieldDescriptor::CPPTYPE_ENUM:{ lua_pushnumber(L, reflection->GetRepeatedEnum(message, field,i)->number()); break;}
+		case FieldDescriptor::CPPTYPE_ENUM:{ lua_pushnumber(L, pRef->GetRepeatedEnum(msg, pField, i)->number()); break; }
 		default:{ 
 			lua_pushnil(L);
-			DF_LOG(LOG_ERROR, " not support name:" << field->name() << " type:" << field->type_name());
+			DF_LOG(LOG_ERROR, " not support name:" << pField->name() << " type:" << pField->type_name());
 			break; 
 		}
 		}
