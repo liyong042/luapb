@@ -118,6 +118,14 @@ static int st_pb_to_table(const Message &message, lua_State *L)
 	return 1; 
 }
 //=================lua table to protobuf ==============================================
+//get pb enum type 
+static  const EnumValueDescriptor*  st_value_get_etype(const FieldDescriptor* pField, lua_State* L)
+{
+	if (lua_type(L, -1) == LUA_TNUMBER){
+		return pField->enum_type()->FindValueByNumber(lua_tonumber(L, -1));
+	}
+	return pField->enum_type()->FindValueByName(lua_tostring(L, -1));
+}
 //set pb value 
 static  void st_value_to_pb(const Reflection* pRef, const FieldDescriptor* pField, Message *msg, lua_State* L)
 {
@@ -141,7 +149,7 @@ static  void st_value_to_pb(const Reflection* pRef, const FieldDescriptor* pFiel
 		case FieldDescriptor::CPPTYPE_DOUBLE:{ pRef->SetDouble (msg, pField, lua_tonumber(L, -1) ); break;}
 		case FieldDescriptor::CPPTYPE_FLOAT: { pRef->SetFloat  (msg, pField, lua_tonumber(L, -1) ); break;}
 		case FieldDescriptor::CPPTYPE_ENUM:  { 
-			const EnumValueDescriptor* pType = pField->enum_type()->FindValueByNumber( lua_tonumber(L, -1) );
+			const EnumValueDescriptor* pType = st_value_get_etype( pField, L);
 			if (NULL == pType ) {
 				DF_LOG(LOG_ERROR, "Fail to find enum descriptor name:" << lua_tostring(L, -1));
 			}
@@ -183,7 +191,7 @@ static  void st_value_to_pb_repeated(const Reflection* pRef, const FieldDescript
 	case FieldDescriptor::CPPTYPE_FLOAT: { pRef->AddFloat (msg, pField, lua_tonumber(L, -1));  break; }
 	case FieldDescriptor::CPPTYPE_DOUBLE:{ pRef->AddDouble(msg, pField, lua_tonumber(L, -1));  break; }
 	case FieldDescriptor::CPPTYPE_ENUM:  {
-			const EnumValueDescriptor* pType = pField->enum_type()->FindValueByNumber(lua_tonumber(L, -1));
+			const EnumValueDescriptor* pType = st_value_get_etype( pField, L);
 			if (NULL == pType) {
 				DF_LOG(LOG_ERROR, "Fail to find enum descriptor name:" << lua_tostring(L, -1));
 			}
