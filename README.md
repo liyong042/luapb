@@ -2,6 +2,8 @@
 luapb is a google protocol buffers library for C++ without code generation.  like cjson. 
 and lua-pbc is a very good library for lua, address: https://github.com/cloudwu/pbc
 
+email: liyong042@163.com 
+
 luapb 参考 cjson 的接口设计， 简单容易上手。200多行代码，实现也简洁。 
 
 第一个版本使用的是 lua5.1.4 + protobuf2.5.1 版本 。  
