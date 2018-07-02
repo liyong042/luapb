@@ -15,9 +15,9 @@ class MyFileErrorCollector : public google::protobuf::compiler::MultiFileErrorCo
 		DF_LOG(LOG_ERROR, "Add File Error " << filename << " line:" << line << column << " :" << message);
 	}
 };
-static int  st_pb_to_array(const Message &message, const FieldDescriptor* field, lua_State *L);
-static int  st_pb_to_table(const Message &message, lua_State *L);
-static void st_table_to_pb(Message* message, const FieldDescriptor* pFieldDescriptor, lua_State* L);
+static int  st_pb_to_array(const Message &msg, const FieldDescriptor* pField, lua_State *L);
+static int  st_pb_to_table(const Message &msg, lua_State *L);
+static void st_table_to_pb(Message* msg, const FieldDescriptor* pField, lua_State* L);
 //------------------------------------------------------------
 static MyFileErrorCollector  g_errorCollector;
 static DiskSourceTree        g_sourceTree;
