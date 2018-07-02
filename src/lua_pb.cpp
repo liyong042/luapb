@@ -4,7 +4,6 @@
 #include <google/protobuf/descriptor.pb.h>
 #include <google/protobuf/dynamic_message.h>
 #include <google/protobuf/compiler/importer.h>
-
 //////////////////////////////////////////////////////////
 using namespace google::protobuf;
 using namespace google::protobuf::compiler;
@@ -38,7 +37,7 @@ static int st_pb_to_value(const Message &msg, const FieldDescriptor* pField, lua
 	case FieldDescriptor::CPPTYPE_DOUBLE: { lua_pushnumber(L, pRef->GetDouble(msg, pField));  break; }
 	case FieldDescriptor::CPPTYPE_ENUM:   { lua_pushnumber(L, pRef->GetEnum(msg, pField)->number()); break; }
 	case FieldDescriptor::CPPTYPE_STRING: {
-		std::string val = pRef->GetString(msg, pField); 
+		const std::string val = pRef->GetString(msg, pField); 
 		lua_pushlstring(L, val.data(), val.size());
 		break;
 	}
@@ -91,19 +90,19 @@ static int st_pb_to_array(const Message &msg, const FieldDescriptor* pField, lua
 	}
 	return 1; 
 }
-static int st_pb_to_table(const Message &message, lua_State *L)
+static int st_pb_to_table(const Message &msg, lua_State *L)
 {
 	lua_newtable(L);
 	std::vector<const FieldDescriptor*> field_list;
-	const Reflection* reflection = message.GetReflection();
-	reflection->ListFields(message, &field_list);
+	const Reflection* pRef = msg.GetReflection();
+	pRef->ListFields( msg, &field_list );
 	for (unsigned i = 0; i < field_list.size(); ++i) {
 		const FieldDescriptor* pfield = field_list[i];
 		if ( pfield->is_repeated() ){
-			st_pb_to_array(message, pfield, L);
+			st_pb_to_array( msg, pfield, L);
 		}
 		else{
-			st_pb_to_value(message, pfield, L);
+			st_pb_to_value( msg, pfield, L);
 		}
 		lua_setfield(L, -2, pfield->name().c_str());
 	}
@@ -123,8 +122,8 @@ static  void st_value_to_pb(const Reflection* pRef, const FieldDescriptor* pFiel
 {
 	if( pField->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE ){
 		if (lua_type(L, -1) == LUA_TTABLE){
-			Message* subMessage = pRef->MutableMessage(msg, pField );
-			st_table_to_pb(subMessage, NULL, L);
+			Message* pSubMsg = pRef->MutableMessage( msg, pField );
+			st_table_to_pb( pSubMsg, NULL, L);
 		}
 		return;
 	}
@@ -204,11 +203,10 @@ static  void st_value_to_pb_repeated(const Reflection* pRef, const FieldDescript
 		}
 	}
 }
-
 //lua table to pb 
-static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua_State* L)
+static  void st_table_to_pb(Message* msg, const FieldDescriptor* pField, lua_State* L)
 {
-	if (NULL == message){
+	if ( NULL == msg ){
 		//lua_pop(L, 1);
 		DF_LOG(LOG_ERROR, " no message " );
 		return ;
@@ -221,30 +219,29 @@ static  void st_table_to_pb(Message* message, const FieldDescriptor* pField, lua
 	}
 	lua_pushnil(L);
 
-	const Reflection* reflection = message->GetReflection();
-	const Descriptor* descriptor = message->GetDescriptor();
+	const Reflection* pRef = msg->GetReflection();
+	const Descriptor* pDsp = msg->GetDescriptor();
 	while ( 0 != lua_next(L, it) ){
 		if ( LUA_TNUMBER == lua_type(L, -2)){
 			if ( NULL != pField && pField->is_repeated() ){
-				st_value_to_pb_repeated( reflection, pField, message, L );
+				st_value_to_pb_repeated( pRef , pField, msg, L);
 			}
 		}
 		else{
 			const std::string      fieldName = luaL_checkstring(L, -2);
-			const FieldDescriptor* k_pfield  = descriptor->FindFieldByName(fieldName);
+			const FieldDescriptor* k_pfield  = pDsp->FindFieldByName(fieldName);
 			if ( k_pfield ){
 				if (k_pfield->is_repeated()){
-					st_table_to_pb(message, k_pfield, L);
+					st_table_to_pb( msg, k_pfield, L);
 				}
 				else{
-					st_value_to_pb(reflection, k_pfield, message, L);
+					st_value_to_pb( pRef, k_pfield, msg, L);
 				}
 			}
 		}
 		lua_pop(L, 1);
 	}
 }
-
 //===============================================================
 static int st_luapb_reg_path(lua_State *L)
 {
@@ -282,6 +279,7 @@ static int st_luapb_encode(lua_State *L)
 	}
 	internal::scoped_ptr<Message> k_pMsg( message->New() );
 	st_table_to_pb( k_pMsg.get(), NULL, L );
+
 	const std::string val = k_pMsg->SerializeAsString();
 	lua_pushlstring(L, val.data(), val.size() );
 
@@ -296,19 +294,19 @@ static int st_luapb_decode( lua_State *L )
 	const char *name = luaL_checkstring (L, 1 );
 	const char *buf  = luaL_checklstring(L, 2, &len);
 
-	const Descriptor *descriptor = g_importer.pool()->FindMessageTypeByName( name );
-	if ( NULL == descriptor ){
+	const Descriptor *pDescriptor = g_importer.pool()->FindMessageTypeByName( name );
+	if ( NULL == pDescriptor ){
 		lua_pushnil(L);
 		DF_LOG(LOG_ERROR, "get descriptor fail :" << name);
 		return 1;
 	}
-	const Message *message = g_factory.GetPrototype(descriptor);
-	if ( NULL == message ){
+	const Message *msg = g_factory.GetPrototype( pDescriptor );
+	if ( NULL == msg ){
 		lua_pushnil(L);
 		DF_LOG(LOG_ERROR, "get GetPrototype fail :" << name);
 		return 1;
 	}
-	internal::scoped_ptr<Message> k_pMsg(message->New());
+	internal::scoped_ptr<Message> k_pMsg( msg->New() );
 	if ( !k_pMsg->ParseFromArray( (const void*)buf, len) ){
 		lua_pushnil(L);
 		DF_LOG(LOG_ERROR, "get ParseFromArray fail :" << name );
@@ -323,7 +321,7 @@ static int st_luapb_decode( lua_State *L )
 static int st_set_log(lua_State *L)
 {
 	LogFile::instance().m_log_level = luaL_checknumber(L, 1);
-	DF_LOG(5, " " << LogFile::instance().m_log_level  );
+	DF_LOG(5, " set log " << LogFile::instance().m_log_level  );
 	return 0; 
 }
 //luapb 
