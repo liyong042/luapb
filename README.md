@@ -6,8 +6,8 @@ email: liyong042@163.com
 
 luapb 参考 cjson 的接口设计， 简单容易上手。200多行代码，实现也简洁。 
 
-第一个版本使用的是 lua5.1.4 + protobuf2.5.1 版本 。  
-对proto3的支持将在后续版本加入. 
+第一个版本(luapb_1 )使用的是 lua5.1.4 + protobuf2.5.1 版本 。  
+对proto3的支持正在开发中(  lua5.1.4 + protobuf3.5.1 ) 
 	
 云风大神 写了一个luapbc不错，可惜不更新了，大家可以参考一下( https://github.com/cloudwu/pbc )
 
